@@ -1,0 +1,7 @@
+Part	Arduino pin
+L298N ENA	D9 (PWM)
+L298N IN1	D7
+L298N IN2	D8
+IR sensor OUT	D2
+Button (other leg to GND)	D3
+Potentiometer middle pin	A0
