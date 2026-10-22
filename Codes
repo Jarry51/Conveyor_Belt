@@ -1,0 +1,81 @@
+// Conveyor Belt Controller
+// Arduino + L298N + IR sensor + button + speed pot
+
+const int ENA = 9;
+const int IN1 = 7;
+const int IN2 = 8;
+const int IR_PIN = 2;      // LOW when object detected (most IR modules)
+const int BTN_PIN = 3;     // button to GND, uses internal pullup
+const int POT_PIN = A0;
+
+bool running = false;
+unsigned long itemCount = 0;
+
+bool lastBtn = HIGH;
+unsigned long lastBtnTime = 0;
+
+bool lastIr = HIGH;
+unsigned long lastIrTime = 0;
+
+const unsigned long DEBOUNCE_MS = 50;
+const unsigned long IR_DEBOUNCE_MS = 150;
+
+void setup() {
+  pinMode(ENA, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IR_PIN, INPUT);
+  pinMode(BTN_PIN, INPUT_PULLUP);
+
+  stopBelt();
+  Serial.begin(9600);
+  Serial.println("Conveyor ready. Press button to start/stop.");
+}
+
+void loop() {
+  handleButton();
+  handleSensor();
+  updateMotor();
+}
+
+void handleButton() {
+  bool btn = digitalRead(BTN_PIN);
+  if (btn != lastBtn && millis() - lastBtnTime > DEBOUNCE_MS) {
+    lastBtnTime = millis();
+    if (btn == LOW) {            // pressed
+      running = !running;
+      Serial.println(running ? "Belt: RUNNING" : "Belt: STOPPED");
+    }
+  }
+  lastBtn = btn;
+}
+
+void handleSensor() {
+  bool ir = digitalRead(IR_PIN);
+  if (ir != lastIr && millis() - lastIrTime > IR_DEBOUNCE_MS) {
+    lastIrTime = millis();
+    if (ir == LOW) {             // object just detected
+      itemCount++;
+      Serial.print("Item detected. Total: ");
+      Serial.println(itemCount);
+    }
+  }
+  lastIr = ir;
+}
+
+void updateMotor() {
+  if (running) {
+    int speed = map(analogRead(POT_PIN), 0, 1023, 80, 255); // 80 = min so it doesn't stall
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+    analogWrite(ENA, speed);
+  } else {
+    stopBelt();
+  }
+}
+
+void stopBelt() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, 0);
+}
